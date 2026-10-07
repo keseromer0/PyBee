@@ -2,9 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import Editor from '@monaco-editor/react'
 import './App.css'
 
-function App() {
-  const [code, setCode] = useState(`# Welcome to PyBee!
-# Write your Python code here and press Run
+const defaultCode = `# Welcome to PyBee!
+# Write your Python code here and press Run.
 
 print("Hello from PyBee! 🐝")
 print("Let's code Python on your iPad!")
@@ -12,89 +11,197 @@ print("Let's code Python on your iPad!")
 # Try some math
 result = 10 + 5
 print(f"10 + 5 = {result}")
-`)
 
-  const [output, setOutput] = useState('')
+# Example list
+fruits = ["apple", "banana", "cherry"]
+for fruit in fruits:
+    print(f"I like {fruit}!")
+`
+
+const examples = {
+  stars: `# Example: Star pyramid
+for i in range(1, 6):
+    print("⭐" * i)`,
+  math: `# Example: Multiplication table
+for num in range(1, 11):
+    print(f"{num} x 5 = {num * 5}")`,
+  names: `# Example: Favorite fruits
+fruits = ["apple", "banana", "cherry"]
+for fruit in fruits:
+    print(f"I like {fruit}!")`
+}
+
+function App() {
+  const [code, setCode] = useState(() => {
+    const saved = localStorage.getItem('pybee-code')
+    return saved || defaultCode
+  })
+  const [output, setOutput] = useState('✅ PyBee is ready. Press Run to execute code.')
   const [isRunning, setIsRunning] = useState(false)
+  const [isReady, setIsReady] = useState(false)
+  const [status, setStatus] = useState('Loading Python runtime...')
   const pyodideRef = useRef(null)
+  const fileInputRef = useRef(null)
 
-  // Initialize Pyodide
+  useEffect(() => {
+    localStorage.setItem('pybee-code', code)
+  }, [code])
+
   useEffect(() => {
     const loadPyodide = async () => {
-      const { loadPyodide: load } = await import('pyodide')
-      const pyodide = await load()
-      pyodideRef.current = pyodide
-      setOutput('✅ PyBee Ready! Press Run to execute code.')
+      try {
+        const { loadPyodide: load } = await import('pyodide')
+        const pyodide = await load({
+          indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/'
+        })
+        pyodideRef.current = pyodide
+        setIsReady(true)
+        setStatus('Python runtime ready')
+      } catch (error) {
+        setStatus('Runtime failed to load')
+        setOutput(`❌ Failed to load Python runtime: ${error.message}`)
+      }
     }
 
-    loadPyodide().catch(err => {
-      setOutput(`❌ Error loading Python: ${err.message}`)
-    })
+    loadPyodide()
   }, [])
 
-  // Handle code execution
   const handleRun = async () => {
     if (!pyodideRef.current) {
-      setOutput('⏳ Python is still loading... try again in a moment')
+      setOutput('⏳ Python is still loading. Please wait a moment.')
       return
     }
 
     setIsRunning(true)
-    setOutput('⏳ Running...\n')
+    setStatus('Running code...')
+    setOutput('')
 
     try {
       const pyodide = pyodideRef.current
-      
-      // Capture output
-      let capturedOutput = ''
-      const oldLog = console.log
-      
+      let buffer = ''
+
       pyodide.setStdout({
         batched: (text) => {
-          capturedOutput += text
-          setOutput(prev => prev + text)
+          buffer += text
+          setOutput((prev) => prev + text)
         }
       })
 
-      // Run the code
+      pyodide.setStderr({
+        batched: (text) => {
+          buffer += text
+          setOutput((prev) => prev + text)
+        }
+      })
+
       await pyodide.runPythonAsync(code)
-      
-      if (capturedOutput === '') {
-        setOutput('✅ Code executed successfully (no output)')
+
+      if (!buffer.trim()) {
+        setOutput('✅ Script executed successfully with no output.')
       } else {
-        setOutput('✅ Code executed successfully!\n\n' + capturedOutput)
+        setOutput((prev) => prev + '\n✅ Script executed successfully.')
       }
-    } catch (err) {
-      setOutput(`❌ Error: ${err.message}`)
+
+      setStatus('Execution finished')
+    } catch (error) {
+      setOutput(`❌ Error: ${error.message}`)
+      setStatus('Execution error')
     } finally {
       setIsRunning(false)
     }
   }
 
-  // Clear output
-  const handleClear = () => {
-    setOutput('')
+  const handleSave = () => {
+    const blob = new Blob([code], { type: 'text/x-python' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'pybee.py'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    setStatus('Saved as pybee.py')
   }
 
-  // Load example code
-  const loadExample = (exampleCode) => {
-    setCode(exampleCode)
-    setOutput('📝 Example loaded! Press Run to execute.')
+  const handleLoadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileLoad = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      const text = await file.text()
+      setCode(text)
+      setStatus(`Loaded ${file.name}`)
+      setOutput(`📁 Loaded ${file.name}`)
+    } catch (error) {
+      setOutput(`❌ Could not load file: ${error.message}`)
+    } finally {
+      event.target.value = ''
+    }
+  }
+
+  const handleReset = () => {
+    setCode(defaultCode)
+    setStatus('Code reset to starter example')
+    setOutput('🧹 Starter code restored.')
+  }
+
+  const loadExample = (exampleKey) => {
+    const selected = examples[exampleKey]
+    setCode(selected)
+    setStatus(`Loaded ${exampleKey} example`)
+    setOutput(`📘 Example loaded: ${exampleKey}`)
   }
 
   return (
-    <div className="pybee-container">
-      {/* Header */}
-      <header className="pybee-header">
-        <h1>🐝 PyBee</h1>
-        <p>Python Coding on iPad</p>
+    <div className="pybee-app">
+      <header className="topbar">
+        <div className="brand-block">
+          <div className="brand-mark">🐝</div>
+          <div>
+            <h1>PyBee</h1>
+            <p>Python workspace</p>
+          </div>
+        </div>
+
+        <div className="status-pill">
+          <span className={`status-dot ${isReady ? 'ready' : 'loading'}`} />
+          {status}
+        </div>
       </header>
 
-      {/* Main content */}
-      <div className="pybee-main">
-        {/* Editor section */}
-        <div className="editor-section">
-          <h2>Code Editor</h2>
+      <div className="toolbar">
+        <button className="primary" onClick={handleRun} disabled={isRunning || !isReady}>
+          {isRunning ? 'Running...' : 'Run code'}
+        </button>
+        <button className="secondary" onClick={handleSave}>Save file</button>
+        <button className="secondary" onClick={handleLoadClick}>Load file</button>
+        <button className="secondary" onClick={handleReset}>Reset</button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".py,.txt"
+          style={{ display: 'none' }}
+          onChange={handleFileLoad}
+        />
+      </div>
+
+      <div className="example-row">
+        <button onClick={() => loadExample('stars')}>Star pattern</button>
+        <button onClick={() => loadExample('math')}>Math loop</button>
+        <button onClick={() => loadExample('names')}>Fruit list</button>
+      </div>
+
+      <main className="workspace">
+        <section className="panel editor-panel">
+          <div className="panel-header">
+            <span>Editor</span>
+          </div>
+
           <Editor
             height="100%"
             defaultLanguage="python"
@@ -103,70 +210,25 @@ print(f"10 + 5 = {result}")
             theme="vs-dark"
             options={{
               minimap: { enabled: false },
-              fontSize: 14,
+              fontSize: 15,
               lineNumbers: 'on',
               scrollBeyondLastLine: false,
               automaticLayout: true,
               wordWrap: 'on',
+              fontFamily: 'JetBrains Mono, Consolas, monospace',
               tabSize: 4,
+              padding: { top: 16, bottom: 16 }
             }}
           />
-        </div>
+        </section>
 
-        {/* Output section */}
-        <div className="output-section">
-          <h2>Output</h2>
-          <pre className="output-box">{output}</pre>
-        </div>
-      </div>
-
-      {/* Control buttons */}
-      <div className="pybee-controls">
-        <button 
-          className="btn btn-run" 
-          onClick={handleRun}
-          disabled={isRunning}
-        >
-          {isRunning ? '⏳ Running...' : '▶ Run Code'}
-        </button>
-        
-        <button 
-          className="btn btn-clear" 
-          onClick={handleClear}
-        >
-          🗑 Clear Output
-        </button>
-
-        <div className="btn-group">
-          <button 
-            className="btn btn-example"
-            onClick={() => loadExample(`# Example: Print Stars
-for i in range(1, 6):
-    print("⭐" * i)`)}
-          >
-            ⭐ Example 1
-          </button>
-          
-          <button 
-            className="btn btn-example"
-            onClick={() => loadExample(`# Example: Loop
-for num in range(1, 11):
-    print(f"{num} x 5 = {num * 5}")`)}
-          >
-            🔢 Example 2
-          </button>
-
-          <button 
-            className="btn btn-example"
-            onClick={() => loadExample(`# Example: List
-fruits = ["apple", "banana", "cherry"]
-for fruit in fruits:
-    print(f"I like {fruit}!")`)}
-          >
-            🍎 Example 3
-          </button>
-        </div>
-      </div>
+        <section className="panel console-panel">
+          <div className="panel-header">
+            <span>Console</span>
+          </div>
+          <pre className="console-output">{output}</pre>
+        </section>
+      </main>
     </div>
   )
 }
