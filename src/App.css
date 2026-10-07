@@ -1,0 +1,207 @@
+.pybee-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+}
+
+/* Header */
+.pybee-header {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  color: #000;
+  padding: 12px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border-bottom: 3px solid #ffb700;
+}
+
+.pybee-header h1 {
+  font-size: 24px;
+  margin: 0;
+  font-weight: bold;
+}
+
+.pybee-header p {
+  font-size: 12px;
+  margin: 2px 0 0 0;
+  opacity: 0.8;
+}
+
+/* Main content area */
+.pybee-main {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  padding: 8px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Editor section */
+.editor-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #252526;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #3e3e42;
+}
+
+.editor-section h2 {
+  font-size: 14px;
+  padding: 8px 12px;
+  margin: 0;
+  background-color: #2d2d30;
+  border-bottom: 1px solid #3e3e42;
+  font-weight: 600;
+}
+
+/* Output section */
+.output-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #3e3e42;
+  overflow: hidden;
+}
+
+.output-section h2 {
+  font-size: 14px;
+  padding: 8px 12px;
+  margin: 0;
+  background-color: #2d2d30;
+  border-bottom: 1px solid #3e3e42;
+  font-weight: 600;
+}
+
+.output-box {
+  flex: 1;
+  padding: 12px;
+  overflow: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #00ff00;
+  background-color: #000;
+  margin: 0;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Controls */
+.pybee-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  background-color: #2d2d30;
+  border-top: 1px solid #3e3e42;
+  align-items: center;
+}
+
+.btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-run {
+  background-color: #4ec9b0;
+  color: #000;
+  font-size: 15px;
+  padding: 10px 20px;
+}
+
+.btn-run:hover:not(:disabled) {
+  background-color: #5ddcc0;
+  transform: scale(1.05);
+}
+
+.btn-run:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-clear {
+  background-color: #f48771;
+  color: #000;
+  font-size: 14px;
+}
+
+.btn-clear:hover {
+  background-color: #ff9999;
+}
+
+.btn-example {
+  background-color: #6f7d8c;
+  color: #fff;
+  font-size: 13px;
+  padding: 8px 12px;
+}
+
+.btn-example:hover {
+  background-color: #7f8d9c;
+}
+
+.btn-group {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* iPad landscape layout */
+@media (max-width: 1024px) {
+  .pybee-main {
+    flex-direction: column;
+  }
+
+  .editor-section,
+  .output-section {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .pybee-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-group {
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    flex: 1;
+  }
+}
+
+/* iPad portrait */
+@media (max-width: 768px) {
+  .pybee-header h1 {
+    font-size: 20px;
+  }
+
+  .btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .output-box {
+    font-size: 12px;
+  }
+}
